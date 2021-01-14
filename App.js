@@ -1,11 +1,13 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {StyleSheet, View, Text} from 'react-native';
-import {RNCamera, FaceDetector} from 'react-native-camera';
+import React, {useState, useEffect} from 'react';
+import {StyleSheet, View, Text, TouchableOpacity, Linking} from 'react-native';
+import {RNCamera} from 'react-native-camera';
 
 const App = () => {
   const [detected, setDetected] = useState(false);
   const [faces, setFaces] = useState([]);
   const [count, setCount] = useState(0);
+  const [url, setUrl] = useState('none');
+  const [topHeight, setTopHeight] = useState(0);
 
   const onFacesDetected = (faceObj) => {
     console.log(detected);
@@ -22,7 +24,7 @@ const App = () => {
         setDetected(false);
         setFaces([]);
       }
-    }, 100);
+    }, 500);
     return () => {
       clearTimeout(timer);
     };
@@ -51,14 +53,44 @@ const App = () => {
   );
 
   const renderFaces = () => (
-    <View style={styles.facesContainer} pointerEvents="none">
+    <View
+      style={[styles.facesContainer, {top: topHeight}]}
+      pointerEvents="none">
       {faces.map(renderFace)}
     </View>
   );
 
+  useEffect(() => {
+    const getUrlAsync = async () => {
+      const link = await Linking.getInitialURL();
+      if (link) {
+        setUrl(link);
+      }
+    };
+    getUrlAsync();
+  }, []);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>{detected ? 'Detected' : 'Not Detected'}</Text>
+      <View
+        onLayout={({nativeEvent}) =>
+          setTopHeight(nativeEvent.layout.y + nativeEvent.layout.height)
+        }>
+        <Text style={styles.text}>
+          {detected ? 'Detected' : 'Not Detected'}
+        </Text>
+        <Text style={styles.text}>{'initialURL: ' + url}</Text>
+        <TouchableOpacity
+          onPress={() => {
+            let q = encodeURIComponent('hello world');
+            const testurl = 'https://google.com/search?q=' + q;
+            console.log(testurl);
+            Linking.openURL(testurl);
+          }}
+          style={styles.button}>
+          <Text>{'Link test'}</Text>
+        </TouchableOpacity>
+      </View>
       <RNCamera
         style={styles.preview}
         type={RNCamera.Constants.Type.front}
@@ -84,8 +116,8 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 18,
     textAlign: 'center',
-    paddingVertical: 10,
     color: '#fff',
+    marginTop: 5,
   },
   facesContainer: {
     position: 'absolute',
@@ -109,6 +141,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     margin: 10,
     backgroundColor: 'transparent',
+  },
+  button: {
+    backgroundColor: 'tomato',
+    alignSelf: 'center',
+    paddingHorizontal: 10,
+    marginVertical: 10,
   },
 });
 
